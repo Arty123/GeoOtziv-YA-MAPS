@@ -1,0 +1,11 @@
+{{#each friends}}
+    <li id="{{id}}" draggable="true" class="list__item list__item_left parent-inline clearfix">
+        <div class="list-img__wrapper child-inline">
+            <img class="list__img" src="{{photo_100}}" alt="">
+        </div>
+        <div class="list__text child-inline">{{first_name}} {{last_name}}</div>
+        <a href="#" data-add="true" class="add-friend__link">
+            <img src="./img/add.png" class="add-friend__btn" alt="">
+        </a>
+    </li>
+{{/each}}
