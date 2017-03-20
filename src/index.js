@@ -13,13 +13,15 @@ function init(){
         zoom: 7
     });
 
+    var myCollection = new ymaps.GeoObjectCollection();
+
     mapContainer.addEventListener('click', function(e) {
 
     var getPointData = function (param, response) {
         return {
-            balloonContentHeader: response.GeoObject.description + ' ' + response.GeoObject.name,
-            balloonContentBody: 'балун <strong>метки ' + param + '</strong>',
-            clusterCaption: 'метка <strong>' + param + '</strong>'
+            balloonContentHeader: '<strong> ' + param[0] + '</strong>',
+            balloonContentBody: '<a data-coords="' + param[2] + ',' +  param[3] +'" href="#">' + response.GeoObject.description + ' ' + response.GeoObject.name + '</a>',
+            balloonContentFooter: 'метка <strong>' + param[1] + '</strong>'
         };
     }
 
@@ -60,13 +62,13 @@ function init(){
           .then(function(response) {
               var myPlacemark = new ymaps.Placemark(
                   [coords[0].toPrecision(6), coords[1].toPrecision(6)],
-                    getPointData(Math.random().toPrecision(2), response),
+                    getPointData(['Name', Math.random().toPrecision(2), coords[0].toPrecision(6), coords[1].toPrecision(6)], response),
                     getPointOptions()
               );
 
               myMap.geoObjects.add(myPlacemark);
 
-              myMap.balloon.close();
+              // myMap.balloon.close();
 
               clusterer.add(myPlacemark);
           })
@@ -149,21 +151,49 @@ var clusterer = new ymaps.Clusterer({
         }
   });
 
-   // Обработка события, возникающего при щелчке
-   // левой кнопкой мыши в любой точке карты.
-   // При возникновении такого события откроем балун.
     myMap.events.add('click', function (e) {
+    var getPointAddress = function(coords) {
+        return new Promise(function(resolve, reject) {
+            var xhr = new XMLHttpRequest();
+                url = 'https://geocode-maps.yandex.ru/1.x/?format=json&kind=house&results=1&geocode='
+                + coords[1].toPrecision(6) + ','+ coords[0].toPrecision(6);
+
+            xhr.open('GET', url);
+
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        var jsonResponse = JSON.parse(xhr.responseText);
+
+                        if (jsonResponse.response.GeoObjectCollection.featureMember) {
+                            resolve(jsonResponse.response.GeoObjectCollection.featureMember[0]);
+                        }
+                    } else {
+                        reject('Какая-то ошибка');
+                    }
+                }
+            }
+
+            xhr.send(null);
+        })
+    }
     if (!myMap.balloon.isOpen()) {
         coords = e.get('coords');
-        myMap.balloon.open(coords, {
-            contentHeader:'Событие!',
-            contentBody:'<p>Кто-то щелкнул по карте.</p>' +
-                '<p>Координаты щелчка: ' + [
-                coords[0].toPrecision(6),
-                coords[1].toPrecision(6)
-                ].join(', ') + '</p>',
-            contentFooter:'<sup><a data-add="true">Добавить метку</a></sup>'
-        });
+        getPointAddress(coords)
+            .then(
+                function(response) {
+                  myMap.balloon.open(coords, {
+                      contentHeader: response.GeoObject.description + ' ' + response.GeoObject.name,
+                      contentBody:'<p>Кто-то щелкнул по карте.</p>' +
+                          '<p>Координаты щелчка: ' + [
+                          coords[0].toPrecision(6),
+                          coords[1].toPrecision(6)
+                          ].join(', ') + '</p>',
+                      contentFooter:'<sup><a data-add="true">Добавить метку</a></sup>'
+                  });
+                }
+            )
+            .catch()
     }
     else {
         myMap.balloon.close();
