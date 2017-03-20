@@ -3,9 +3,8 @@ require('./index.css');
 ymaps.ready(init);
 var myMap, coords;
 
-var mapContainer = document.getElementById('map');
-
-
+var mapContainer = document.getElementById('map'),
+    myBaloons = [], objectBaloon = {};
 
 function init(){
     myMap = new ymaps.Map("map", {
@@ -20,7 +19,7 @@ function init(){
     var getPointData = function (param, response) {
         return {
             balloonContentHeader: '<strong> ' + param[0] + '</strong>',
-            balloonContentBody: '<a data-coords="' + param[2] + ',' +  param[3] +'" href="#">' + response.GeoObject.description + ' ' + response.GeoObject.name + '</a>',
+            balloonContentBody: '<a data-review="true" data-coords="' + param[2] + ',' +  param[3] + '" data-address="' + response.GeoObject.description + ' ' + response.GeoObject.name +'" href="#">' + response.GeoObject.description + ' ' + response.GeoObject.name + '</a>',
             balloonContentFooter: 'метка <strong>' + param[1] + '</strong>'
         };
     }
@@ -32,18 +31,26 @@ function init(){
     }
 
     var getPointAddress = function(coords) {
+        if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
+            var lat = coords[0],
+                lng = coords[1];
+        } else {
+            var lat = coords[0].toPrecision(6),
+                lng = coords[1].toPrecision(6);
+        }
+
         return new Promise(function(resolve, reject) {
             var xhr = new XMLHttpRequest();
                 url = 'https://geocode-maps.yandex.ru/1.x/?format=json&kind=house&results=1&geocode='
-                + coords[1].toPrecision(6) + ','+ coords[0].toPrecision(6);
-
+                + lng + ','+ lat;
+                console.log(url);
             xhr.open('GET', url);
 
             xhr.onreadystatechange = function() {
                 if (xhr.readyState === 4) {
                     if (xhr.status === 200) {
                         var jsonResponse = JSON.parse(xhr.responseText);
-
+                        console.log(jsonResponse);
                         if (jsonResponse.response.GeoObjectCollection.featureMember) {
                             resolve(jsonResponse.response.GeoObjectCollection.featureMember[0]);
                         }
@@ -58,23 +65,66 @@ function init(){
     }
 
     if (e.target.dataset.add) {
-          getPointAddress(coords)
-          .then(function(response) {
-              var myPlacemark = new ymaps.Placemark(
-                  [coords[0].toPrecision(6), coords[1].toPrecision(6)],
-                    getPointData(['Name', Math.random().toPrecision(2), coords[0].toPrecision(6), coords[1].toPrecision(6)], response),
-                    getPointOptions()
-              );
+            if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
+                var lat = coords[0],
+                    lng = coords[1];
+            } else {
+                var lat = coords[0].toPrecision(6),
+                    lng = coords[1].toPrecision(6);
+            }
+            getPointAddress(coords)
+            .then(function(response) {
+                var someData = Math.random().toPrecision(2),
+                    myPlacemark = new ymaps.Placemark(
+                      [lat, lng],
+                      getPointData(['Name', Math.random().toPrecision(2), lat, lng], response),
+                      getPointOptions()
+                );
 
-              myMap.geoObjects.add(myPlacemark);
+                myMap.geoObjects.add(myPlacemark);
 
-              // myMap.balloon.close();
+                objectBaloon.coords = [lat, lng];
+                objectBaloon.address = response.GeoObject.description + ' ' + response.GeoObject.name;
+                objectBaloon.name = 'name';
+                objectBaloon.review = someData;
 
-              clusterer.add(myPlacemark);
-          })
-          .catch(function() {alert('Не могу определить точный адрес!')});
-      }
+                myBaloons.push(objectBaloon);
+                console.log(myBaloons);
+                objectBaloon = {};
+                // myMap.balloon.close();
+
+                clusterer.add(myPlacemark);
+            })
+            .catch(function() {alert('Не могу определить точный адрес!')});
+        }
+
+        if (e.target.dataset.review) {
+            var coordsOfCurrentAddress = e.target.dataset.coords.split(','),
+                reviewsOfCurrentAddress = 'Предыдущие отзывы <br>';
+
+            myBaloons.forEach(function(item, i, myBaloons) {
+                if (item.address === e.target.dataset.address) {
+                    reviewsOfCurrentAddress += item.review + '<br>';
+                }
+            })
+
+            myMap.balloon.close();
+
+            if (!myMap.balloon.isOpen()) {
+                coords = coordsOfCurrentAddress;
+                myMap.balloon.open(coords, {
+                    contentHeader: e.target.dataset.address,
+                    contentBody: reviewsOfCurrentAddress,
+                    contentFooter:'<sup><a data-add="true" data-new="true">Добавить метку</a></sup>'
+                });
+            }
+            else {
+                myMap.balloon.close();
+            }
+        }
     })
+
+
 
     // создадим массив геообъектов
     myGeoObjects = [];
