@@ -1,11 +1,13 @@
-{{#each friends}}
-    <li id="{{id}}" class="list__item list__item_left parent-inline clearfix">
-        <div class="list-img__wrapper child-inline">
-            <img class="list__img" src="{{photo_100}}" alt="">
-        </div>
-        <div class="list__text child-inline">{{first_name}} {{last_name}}</div>
-        <a href="#" data-add="true" class="add-friend__link" data-delete="true">
-            <img src="./img/delete.png" class="add-friend__btn" alt="">
-        </a>
-    </li>
-{{/each}}
+<div class="feedback-window">
+<div class="title"></div>
+ <div class="messages">${renderMessages}</div>
+           <div class="form">
+             <h3>ВАШ ОТЗЫВ</h3>
+             <form id="yaFrom">
+               <input type="text" placeholder="Ваше имя" name="name" />
+               <input type="text" placeholder="Укажите место" name="placename" />
+               <textarea name="message"></textarea>
+               <button type="submit">Добавить</button>
+             </form>
+           </div>
+         </div>
