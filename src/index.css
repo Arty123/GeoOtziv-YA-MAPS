@@ -3,61 +3,25 @@
   -moz-box-sizing: border-box;
   -webkit-box-sizing: border-box;
 }
+
 body,
 html {
   padding: 0;
   margin: 0;
   width: 100%;
   height: 100%;
-  font: 14px/22px 'Open sans', sans-serif;
+  font-family: 'Fira Sans', sans-serif;
 }
+
 #map {
   width: 100%;
   height: 100%;
 }
-.feedback-window {
-  width: 350px;
-  height: 500px;
-  position: absolute;
-}
-.feedback-window > div {
-  float: left;
-}
-.popup__header {
-  background-color: #FF9976 ;
-  width: 100%;
-  line-height: 50px;
-  color: #fff;
-  height: 50px;
-  padding: 0px 30px 0px 15px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-radius: 10px 10px 0px 0px;
-}
-.feedback-window .messages {
-  width: 100%;
-  height: 200px;
-  padding: 10px;
-  background-color: #fff;
-}
-.feedback-window .form {
-  padding: 10px;
-  background-color: #fff;
-  border-radius: 0px 0px 10px 10px;
-}
-.feedback-window .form input,
-.feedback-window .form button,
-.feedback-window .form textarea {
-  width: 100%;
-}
-.feedback-window .close {
-  color: #fff;
-  font-size: 18px;
-  right: 15px;
-  top: 0;
-  position: absolute;
-  text-decoration: none;
+
+ul {
+    margin: 0px;
+    padding: 0px;
+    list-style: none;
 }
 
 .ymaps-2-1-48-balloon__close+.ymaps-2-1-48-balloon__content {
@@ -73,4 +37,83 @@ html {
   border-radius: 10px;
   padding: 0px;
   background-color: #ffffff !important;
+}
+
+.popup__header {
+  background-color: #FF9976 ;
+  width: 100%;
+  line-height: 50px;
+  color: #fff;
+  height: 50px;
+  padding: 0px 30px 0px 15px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 10px 10px 0px 0px;
+  font-family: 'Fira Sans', sans-serif;
+  font-weight: 900;
+}
+
+.popup__input,
+.popup__input,
+.popup__textarea {
+  border-radius: 10px;
+  height: 26px;
+  outline: none;
+  border: none;
+  width: 271px;
+  color:#aeaeae; font-size: 12px;
+  padding: 0px 7px;
+  width: 100%;
+  border: 2px solid #aeaeae;
+  margin-bottom: 5px;
+}
+
+.popup__textarea {
+  padding-top: 5px;
+  resize: none;
+  height: 50px;
+}
+
+.popup__main {
+  height: 350px;
+  padding: 10px;
+  font-family: 'Fira Sans', sans-serif;
+}
+
+.save__btn {
+    display: inline-block;
+    padding: 10px 15px;
+    color: #ffffff;
+    background-color: #ff8663;
+    float: right;
+    text-decoration: none;
+    border-radius: 5px;
+    font-family: 'Fira Sans', sans-serif;
+    border: none;
+}
+
+.popup__main-add-header {
+    color: #FF9976;
+    font-family: 'Fira Sans', sans-serif;
+}
+
+.popup__main-reviews {
+    height: 150px;
+    overflow: auto;
+}
+
+
+.popup__input::-webkit-input-placeholder {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}
+.popup__input::-moz-placeholder          {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}/* Firefox 19+ */
+.popup__input:-moz-placeholder           {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}/* Firefox 18- */
+.popup__input:-ms-input-placeholder      {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}
+
+.popup__textarea::-webkit-input-placeholder {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}
+.popup__textarea::-moz-placeholder          {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}/* Firefox 19+ */
+.popup__textarea:-moz-placeholder           {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}/* Firefox 18- */
+.popup__textarea:-ms-input-placeholder      {color:#aeaeae; font-size: 12px; font-family: 'Fira Sans', sans-serif;}
+
+.review__list-content {
+    color: #aeaeae;
 }

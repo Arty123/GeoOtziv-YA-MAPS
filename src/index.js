@@ -1,3 +1,5 @@
+"use strict"
+
 require('./index.css');
 
 ymaps.ready(init);
@@ -6,269 +8,230 @@ var myMap, coords;
 var mapContainer = document.getElementById('map'),
     myBaloons = [], objectBaloon = {};
 
-function init(){
+function getBaloonData(address, lastReviews) {
+    return {
+        balloonContent: createBaloon(address, lastReviews),
+    };
+}
+
+function getPointOptions() {
+    return {
+        preset: 'islands#violetIcon'
+    };
+}
+
+function checkCoords(coords) {
+    if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
+        var lat = coords[0],
+            lng = coords[1];
+
+        return [lat, lng]
+    } else {
+        var lat = coords[0].toPrecision(6),
+            lng = coords[1].toPrecision(6);
+
+        return [lat, lng]
+    }
+}
+
+function getPointAddress(coords) {
+
+    coords = checkCoords(coords);
+
+    return new Promise(function(resolve, reject) {
+        var xhr = new XMLHttpRequest(),
+            url = 'https://geocode-maps.yandex.ru/1.x/?format=json&kind=house&results=1&geocode='
+                + coords[1] + ','+ coords[0];
+        xhr.open('GET', url);
+
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    var jsonResponse = JSON.parse(xhr.responseText);
+                    if (jsonResponse.response.GeoObjectCollection.featureMember) {
+                        resolve(jsonResponse.response.GeoObjectCollection.featureMember[0]);
+                    }
+                } else {
+                    reject('Какая-то ошибка');
+                }
+            }
+        };
+
+        xhr.send(null);
+    })
+}
+
+function createReview(item) {
+    var templateFn = require('../review-template.hbs');
+
+    return templateFn({
+        item: item
+    });
+}
+
+function createBaloon(address, lastReviews) {
+    var templateFn = require('../baloon-template.hbs');
+
+    return templateFn({
+        address: address,
+        lastReviews:  lastReviews
+    });
+}
+
+function appendReview(listId, item) {
+    var review = createReview(item),
+        list = document.getElementById(listId);
+
+    list.innerHTML += review;
+}
+
+function init() {
     myMap = new ymaps.Map("map", {
         center: [55.76, 37.64],
         zoom: 7
     });
 
-    var myCollection = new ymaps.GeoObjectCollection();
+    // Создаем собственный макет с информацией о выбранном геообъекте.
+    var customItemContentLayout = ymaps.templateLayoutFactory.createClass(
+        // Флаг "raw" означает, что данные вставляют "как есть" без экранирования html.
+        '<h2 class="ballon_header">{{ properties.balloonContent|raw }}</h2>' +
+        '<div class="ballon_body">{{ properties.balloonContentBody|raw }}</div>' +
+        '<div class="ballon_footer">{{ properties.balloonContentFooter|raw }}</div>'
+    );
 
-    mapContainer.addEventListener('click', function(e) {
-
-    var getPointData = function (param, response) {
-        return {
-            balloonContentHeader: '<strong> ' + param[0] + '</strong>',
-            balloonContentBody: '<a data-review="true" data-coords="' + param[2] + ',' +  param[3] + '" data-address="' + response.GeoObject.description + ' ' + response.GeoObject.name +'" href="#">' + response.GeoObject.description + ' ' + response.GeoObject.name + '</a>',
-            balloonContentFooter: 'метка <strong>' + param[1] + '</strong>'
-        };
-    }
-
-    var getPointOptions = function () {
-        return {
-            preset: 'islands#violetIcon'
-        };
-    }
-
-    var getPointAddress = function(coords) {
-        if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
-            var lat = coords[0],
-                lng = coords[1];
-        } else {
-            var lat = coords[0].toPrecision(6),
-                lng = coords[1].toPrecision(6);
-        }
-
-        return new Promise(function(resolve, reject) {
-            var xhr = new XMLHttpRequest();
-                url = 'https://geocode-maps.yandex.ru/1.x/?format=json&kind=house&results=1&geocode='
-                + lng + ','+ lat;
-                console.log(url);
-            xhr.open('GET', url);
-
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        var jsonResponse = JSON.parse(xhr.responseText);
-                        console.log(jsonResponse);
-                        if (jsonResponse.response.GeoObjectCollection.featureMember) {
-                            resolve(jsonResponse.response.GeoObjectCollection.featureMember[0]);
-                        }
-                    } else {
-                        reject('Какая-то ошибка');
-                    }
-                }
-            }
-
-            xhr.send(null);
-        })
-    }
-
-    if (e.target.dataset.add) {
-            if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
-                var lat = coords[0],
-                    lng = coords[1];
-            } else {
-                var lat = coords[0].toPrecision(6),
-                    lng = coords[1].toPrecision(6);
-            }
-            getPointAddress(coords)
-            .then(function(response) {
-                var someData = Math.random().toPrecision(2),
-                    myPlacemark = new ymaps.Placemark(
-                      [lat, lng],
-                      getPointData(['Name', Math.random().toPrecision(2), lat, lng], response),
-                      getPointOptions()
-                );
-
-                myMap.geoObjects.add(myPlacemark);
-
-                objectBaloon.coords = [lat, lng];
-                objectBaloon.address = response.GeoObject.description + ' ' + response.GeoObject.name;
-                objectBaloon.name = 'name';
-                objectBaloon.review = someData;
-
-                myBaloons.push(objectBaloon);
-                console.log(myBaloons);
-                objectBaloon = {};
-                // myMap.balloon.close();
-
-                clusterer.add(myPlacemark);
-            })
-            .catch(function() {alert('Не могу определить точный адрес!')});
-        }
-
-        if (e.target.dataset.review) {
-            var coordsOfCurrentAddress = e.target.dataset.coords.split(','),
-                reviewsOfCurrentAddress = 'Предыдущие отзывы <br>';
-
-            myBaloons.forEach(function(item, i, myBaloons) {
-                if (item.address === e.target.dataset.address) {
-                    reviewsOfCurrentAddress += item.review + '<br>';
-                }
-            })
-
-            myMap.balloon.close();
-
-            if (!myMap.balloon.isOpen()) {
-                coords = coordsOfCurrentAddress;
-                myMap.balloon.open(coords, {
-                    contentHeader: e.target.dataset.address,
-                    contentBody: reviewsOfCurrentAddress,
-                    contentFooter:'<sup><a data-add="true" data-new="true">Добавить метку</a></sup>'
-                });
-            }
-            else {
-                myMap.balloon.close();
-            }
-        }
-    })
-
-
-
-    // создадим массив геообъектов
-    myGeoObjects = [];
-    myGeoObjects[0] = new ymaps.GeoObject({
-        geometry: {type: "Point", coordinates: [56.034, 36.992]},
-        properties: {
-            clusterCaption: 'Геообъект №1',
-            balloonContentBody: 'Содержимое балуна геообъекта №1.'
-        }
-    });
-    myGeoObjects[1] = new ymaps.GeoObject({
-        geometry: {type: "Point", coordinates: [56.021, 36.983]},
-        properties: {
-            clusterCaption: 'Геообъект №2',
-            balloonContentBody: 'Содержимое балуна геообъекта №2.'
-        }
+    var clusterer = new ymaps.Clusterer({
+        clusterDisableClickZoom: true,
+        clusterOpenBalloonOnClick: true,
+        clusterBalloonContentLayout: 'cluster#balloonCarousel',
+        // clusterBalloonItemContentLayout: customItemContentLayout,
+        clusterBalloonPanelMaxMapArea: 0,
+        clusterBalloonContentLayoutWidth: 200,
+        clusterBalloonContentLayoutHeight: 130,
+        clusterBalloonPagerSize: 5,
+        preset: 'islands#invertedVioletClusterIcons'
     });
 
-// Создаем собственный макет с информацией о выбранном геообъекте.
-var customItemContentLayout = ymaps.templateLayoutFactory.createClass(
-    // Флаг "raw" означает, что данные вставляют "как есть" без экранирования html.
-    '<h2 class=ballon_header>{{ properties.balloonContentHeader|raw }}</h2>' +
-        '<div class=ballon_body>{{ properties.balloonContentBody|raw }}</div>' +
-        '<div class=ballon_footer>{{ properties.balloonContentFooter|raw }}</div>'
-);
-
-// создадим кластеризатор и запретим приближать карту при клике на кластеры
-var clusterer = new ymaps.Clusterer({
-    clusterDisableClickZoom: true,
-    clusterOpenBalloonOnClick: true,
-    // Устанавливаем стандартный макет балуна кластера "Карусель".
-    clusterBalloonContentLayout: 'cluster#balloonCarousel',
-    // Устанавливаем собственный макет.
-    clusterBalloonItemContentLayout: customItemContentLayout,
-    // Устанавливаем режим открытия балуна.
-    // В данном примере балун никогда не будет открываться в режиме панели.
-    clusterBalloonPanelMaxMapArea: 0,
-    // Устанавливаем размеры макета контента балуна (в пикселях).
-    clusterBalloonContentLayoutWidth: 200,
-    clusterBalloonContentLayoutHeight: 130,
-    // Устанавливаем максимальное количество элементов в нижней панели на одной странице
-    clusterBalloonPagerSize: 5,
-    preset: 'islands#invertedVioletClusterIcons'
-    // Настройка внешего вида нижней панели.
-    // Режим marker рекомендуется использовать с небольшим количеством элементов.
-    // clusterBalloonPagerType: 'marker',
-    // Можно отключить зацикливание списка при навигации при помощи боковых стрелок.
-    // clusterBalloonCycling: false,
-    // Можно отключить отображение меню навигации.
-    // clusterBalloonPagerVisible: false
-});
-    clusterer.add(myGeoObjects);
-    myMap.geoObjects.add(clusterer);
-
-    // Поскольку по умолчанию объекты добавляются асинхронно,
-    // обработку данных можно делать только после события, сигнализирующего об
-    // окончании добавления объектов на карту.
     clusterer.events.add('objectsaddtomap', function () {
 
-        // Получим данные о состоянии объекта внутри кластера.
         var geoObjectState = cluster.getObjectState(myGeoObjects[1]);
-        // Проверяем, находится ли объект находится в видимой области карты.
         if (geoObjectState.isShown) {
 
-            // Если объект попадает в кластер, открываем балун кластера с нужным выбранным объектом.
             if (geoObjectState.isClustered) {
                 geoObjectState.cluster.state.set('activeObject', myGeoObjects[1]);
                 geoObjectState.cluster.balloon.open();
 
             } else {
-                // Если объект не попал в кластер, открываем его собственный балун.
                 myGeoObjects[1].balloon.open();
             }
         }
-  });
+    });
 
-    myMap.events.add('click', function (e) {
-    var getPointAddress = function(coords) {
-        return new Promise(function(resolve, reject) {
-            var xhr = new XMLHttpRequest();
-                url = 'https://geocode-maps.yandex.ru/1.x/?format=json&kind=house&results=1&geocode='
-                + coords[1].toPrecision(6) + ','+ coords[0].toPrecision(6);
+    myMap.geoObjects.add(clusterer);
 
-            xhr.open('GET', url);
+    mapContainer.addEventListener('click', function(e) {
+        if (e.target.dataset.add) {
+            var inputName = document.getElementById('inputName').value,
+                inputPlace = document.getElementById('inputPlace').value,
+                inputReview = document.getElementById('inputReview').value;
 
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        var jsonResponse = JSON.parse(xhr.responseText);
 
-                        if (jsonResponse.response.GeoObjectCollection.featureMember) {
-                            resolve(jsonResponse.response.GeoObjectCollection.featureMember[0]);
-                        }
-                    } else {
-                        reject('Какая-то ошибка');
-                    }
+                if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
+                    var lat = coords[0],
+                        lng = coords[1];
+                } else {
+                    var lat = coords[0].toPrecision(6),
+                        lng = coords[1].toPrecision(6);
                 }
+
+                getPointAddress(coords)
+                    .then(
+                        function(response) {
+                            var myPlacemark,
+                                lastReviews = [],
+                                address = response.GeoObject.description + ' ' + response.GeoObject.name;
+
+                            objectBaloon.coords = [lat, lng];
+                            objectBaloon.address = address;
+                            objectBaloon.name = inputName;
+                            objectBaloon.review = inputReview;
+                            objectBaloon.place = inputPlace;
+                            objectBaloon.date = new Date().toLocaleString();
+
+                            myBaloons.push(objectBaloon);
+
+                            myBaloons.forEach(function(item, i, myBaloons) {
+                                if (item.address === address) {
+                                    lastReviews.push(item);
+                                }
+                            });
+
+                            myPlacemark = new ymaps.Placemark(
+                                [lat, lng],
+                                getBaloonData(address, lastReviews),
+                                getPointOptions()
+                            );
+
+                            myMap.geoObjects.add(myPlacemark);
+
+                            appendReview('reviews-list', objectBaloon);
+
+                            objectBaloon = {};
+
+                            clusterer.add(myPlacemark);
+                        }
+                    )
+                    .catch(function() {alert('Не могу определить точный адрес!')});
             }
 
-            xhr.send(null);
-        })
-    }
-    if (!myMap.balloon.isOpen()) {
-        coords = e.get('coords');
-        getPointAddress(coords)
-            .then(
-                function(response) {
-                  myMap.balloon.open(coords,
-                    `<div class="popup">
-                    <div class="popup__header">
-                        <span class="popup__header-inner">
-                            <i class="fa fa-map-marker popup__header-marker" aria-hidden="true"></i>
-                            <span class="popup__header-text">${response.GeoObject.description} ${response.GeoObject.name}</span>
-                        </span>
-                    </div>
-                    <div class="popup__main">
-                        <div class="popup__main-reviews" id="reviews">
-                            asd
-                        </div>
-                        <div class="popup__main-add clearfix">
-                            <div class="popup__main-add-header">ВАШ ОТЗЫВ</div>
-                            <form name="form" method="POST">
-                                <input type="text" name="name" placeholder="Ваше имя" class="popup__input">
-                                <input type="text" name="place" placeholder="Укажите место" class="popup__input">
-                                <textarea name="message" placeholder="Поделитесь впечатлениями" class="popup__textarea"></textarea>
-                                <button class="btn" id="btn">Добавить</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>`, );
-                }
-            )
-            .catch()
-    }
-    else {
-        myMap.balloon.close();
-    }
+        if (e.target.dataset.review) {
+            var coordsOfCurrentAddress = e.target.dataset.coords.split(','),
+                reviewsOfCurrentAddress = [];
 
-    // Обработка события, возникающего при щелчке
-    // правой кнопки мыши в любой точке карты.
-    // При возникновении такого события покажем всплывающую подсказку
-    // в точке щелчка.
-    myMap.events.add('contextmenu', function (e) {
-        myMap.hint.show(e.get('coordPosition'), 'Кто-то щелкнул правой кнопкой');
+            myBaloons.forEach(function(item, i, myBaloons) {
+                if (item.address === e.target.dataset.address) {
+                    reviewsOfCurrentAddress.push(item);
+                }
+            });
+
+            myMap.balloon.close();
+
+            if (!myMap.balloon.isOpen()) {
+                coords = coordsOfCurrentAddress;
+                myMap.balloon.open(coords, createBaloon(e.target.dataset.address, reviewsOfCurrentAddress));
+            }
+            else {
+                myMap.balloon.close();
+            }
+
+            reviewsOfCurrentAddress = [];
+        }
     });
-});
+
+    myMap.events.add('click', function (e) {
+        if (!myMap.balloon.isOpen()) {
+            coords = e.get('coords');
+
+            getPointAddress(coords)
+                .then(
+                    function(response) {
+                        var address = response.GeoObject.description + ' ' + response.GeoObject.name,
+                            lastReviews = [];
+
+                        myBaloons.forEach(function(item, i, myBaloons) {
+                            if (item.address === address) {
+                                lastReviews.push(item);
+                            }
+                        });
+
+                        myMap.balloon.open(coords, createBaloon(address, lastReviews));
+
+                        lastReviews = [];
+                    }
+                )
+                .catch()
+        }
+        else {
+            myMap.balloon.close();
+        }
+    });
 }
