@@ -138,11 +138,14 @@ function init() {
 
     myMap.geoObjects.add(clusterer);
 
+    // Вешаем на стадии перехвата, чтобы обновить координаты перед кликом по содержимому карты
     mapContainer.addEventListener('click', function(e) {
         // Get click position
         clickY = e.pageY;
         clickX = e.pageX;
-        console.log(clickY, clickX)
+    }, true)
+
+    mapContainer.addEventListener('click', function(e) {
         if (e.target.dataset.review) {
             e.preventDefault();
 
@@ -296,10 +299,9 @@ function init() {
                             popupAddress.setAttribute('title', address);
                             popupBtn.dataset.coords = baloonCoords;
 
-                            popupLayout.style.display = 'block';
                             popupLayout.style.top = clickY + 'px';
                             popupLayout.style.left = clickX + 'px';
-
+                            popupLayout.style.display = 'block';
                             lastReviews = [];
                         });
                     }
