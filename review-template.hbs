@@ -1,4 +1,6 @@
-<li class="review__item">
-    <div class="review__list-name">{{ item.name }} <span class="review__list-content">{{ item.date }}</span></div>
-    <div class="review__list-content">{{ item.review }}</div>
-</li>
+{{#each item}}
+    <li class="review__item">
+        <div class="review__list-name">{{ name }} <span class="review__list-content">{{ place }}</span> <span class="review__list-content">{{ date }}</span></div>
+        <div class="review__list-content">{{ review }}</div>
+    </li>
+{{/each}}

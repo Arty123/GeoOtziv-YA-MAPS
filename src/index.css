@@ -1,21 +1,21 @@
 * {
-  box-sizing: border-box;
-  -moz-box-sizing: border-box;
-  -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
 }
 
 body,
 html {
-  padding: 0;
-  margin: 0;
-  width: 100%;
-  height: 100%;
-  font-family: 'Fira Sans', sans-serif;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    font-family: 'Fira Sans', sans-serif;
 }
 
-#map {
-  width: 100%;
-  height: 100%;
+#homework-container {
+    width: 100%;
+    height:100%;
 }
 
 ul {
@@ -24,61 +24,63 @@ ul {
     list-style: none;
 }
 
-.ymaps-2-1-48-balloon__close+.ymaps-2-1-48-balloon__content {
-  margin-right: 0px !important;
-}
-
-.ymaps-2-1-48-balloon__content {
-  padding: 0px !important;
-  border-radius: 10px !important;
-}
-
-.ymaps-2-1-48-balloon {
-  border-radius: 10px;
-  padding: 0px;
-  background-color: #ffffff !important;
+.popup {
+    width: 350px;
+    height: 400px;
+    position: absolute;
+    top: 0px;
+    z-index: 10000;
+    background-color: #ffffff;
+    display: none;
+    border-radius: 10px;
 }
 
 .popup__header {
-  background-color: #FF9976 ;
-  width: 100%;
-  line-height: 50px;
-  color: #fff;
-  height: 50px;
-  padding: 0px 30px 0px 15px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  border-radius: 10px 10px 0px 0px;
-  font-family: 'Fira Sans', sans-serif;
-  font-weight: 900;
+    background-color: #FF9976 ;
+    width: 100%;
+    line-height: 50px;
+    color: #fff;
+    height: 50px;
+    padding: 0px 30px 0px 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: 10px 10px 0px 0px;
+    font-family: 'Fira Sans', sans-serif;
+    font-weight: 900;
+    font-size: 13px;
+    position: relative;
+}
+
+.popup__header-text {
+    width: 90%;
 }
 
 .popup__input,
 .popup__input,
 .popup__textarea {
-  border-radius: 10px;
-  height: 26px;
-  outline: none;
-  border: none;
-  width: 271px;
-  color:#aeaeae; font-size: 12px;
-  padding: 0px 7px;
-  width: 100%;
-  border: 2px solid #aeaeae;
-  margin-bottom: 5px;
+    border-radius: 10px;
+    height: 26px;
+    outline: none;
+    border: none;
+    width: 271px;
+    color:#aeaeae; font-size: 12px;
+    padding: 0px 7px;
+    width: 100%;
+    border: 2px solid #aeaeae;
+    margin-bottom: 5px;
 }
 
 .popup__textarea {
-  padding-top: 5px;
-  resize: none;
-  height: 50px;
+    padding-top: 5px;
+    resize: none;
+    height: 50px;
 }
 
 .popup__main {
-  height: 350px;
-  padding: 10px;
-  font-family: 'Fira Sans', sans-serif;
+    height: 350px;
+    padding: 10px;
+    font-family: 'Fira Sans', sans-serif;
 }
 
 .save__btn {
@@ -116,4 +118,11 @@ ul {
 
 .review__list-content {
     color: #aeaeae;
+}
+
+.btn-close {
+    position: absolute;
+    right: 15px;
+    top: 16px;
+    cursor: pointer;
 }

@@ -6,17 +6,27 @@ ymaps.ready(init);
 var myMap, coords;
 
 var mapContainer = document.getElementById('map'),
-    myBaloons = [], objectBaloon = {};
+    myBaloons = [], objectBaloon = {},
+    popupLayout = document.getElementById('popup'),
+    reviewsList = document.getElementById('reviews-list'),
+    clickY, clickX,
+    popupAddress = document.getElementById('popup-address'),
+    popupBtn = document.getElementById('btn'),
+    closeBtn = document.getElementById('btn-close'),
+    reviewsLayout;
 
-function getBaloonData(address, lastReviews) {
+var getPointData = function (param, response) {
     return {
-        balloonContent: createBaloon(address, lastReviews),
+        balloonContentHeader: '<strong> ' + param[0] + '</strong>', 
+        balloonContentBody: '<a data-review="true" data-coords="' + param[2] + ',' +  param[3] + '" data-address="' + response.GeoObject.description + ' ' + response.GeoObject.name +'" href="#">' + response.GeoObject.description + ' ' + response.GeoObject.name + '</a>', 
+        balloonContentFooter: '<div><strong>' + param[1] + '</strong></div><div style="margin: 8% 0% 0% 38%;">'+param[4]+'</div>'
     };
 }
 
 function getPointOptions() {
     return {
-        preset: 'islands#violetIcon'
+        preset: 'islands#violetIcon',
+        hasBalloon: false
     };
 }
 
@@ -129,63 +139,17 @@ function init() {
     myMap.geoObjects.add(clusterer);
 
     mapContainer.addEventListener('click', function(e) {
-        if (e.target.dataset.add) {
-            var inputName = document.getElementById('inputName').value,
-                inputPlace = document.getElementById('inputPlace').value,
-                inputReview = document.getElementById('inputReview').value;
-
-
-                if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
-                    var lat = coords[0],
-                        lng = coords[1];
-                } else {
-                    var lat = coords[0].toPrecision(6),
-                        lng = coords[1].toPrecision(6);
-                }
-
-                getPointAddress(coords)
-                    .then(
-                        function(response) {
-                            var myPlacemark,
-                                lastReviews = [],
-                                address = response.GeoObject.description + ' ' + response.GeoObject.name;
-
-                            objectBaloon.coords = [lat, lng];
-                            objectBaloon.address = address;
-                            objectBaloon.name = inputName;
-                            objectBaloon.review = inputReview;
-                            objectBaloon.place = inputPlace;
-                            objectBaloon.date = new Date().toLocaleString();
-
-                            myBaloons.push(objectBaloon);
-
-                            myBaloons.forEach(function(item, i, myBaloons) {
-                                if (item.address === address) {
-                                    lastReviews.push(item);
-                                }
-                            });
-
-                            myPlacemark = new ymaps.Placemark(
-                                [lat, lng],
-                                getBaloonData(address, lastReviews),
-                                getPointOptions()
-                            );
-
-                            myMap.geoObjects.add(myPlacemark);
-
-                            appendReview('reviews-list', objectBaloon);
-
-                            objectBaloon = {};
-
-                            clusterer.add(myPlacemark);
-                        }
-                    )
-                    .catch(function() {alert('Не могу определить точный адрес!')});
-            }
-
+        // Get click position
+        clickY = e.pageY;
+        clickX = e.pageX;
+        console.log(clickY, clickX)
         if (e.target.dataset.review) {
+            e.preventDefault();
+
             var coordsOfCurrentAddress = e.target.dataset.coords.split(','),
                 reviewsOfCurrentAddress = [];
+
+            popupLayout.style.display = 'none';
 
             myBaloons.forEach(function(item, i, myBaloons) {
                 if (item.address === e.target.dataset.address) {
@@ -195,13 +159,19 @@ function init() {
 
             myMap.balloon.close();
 
-            if (!myMap.balloon.isOpen()) {
-                coords = coordsOfCurrentAddress;
-                myMap.balloon.open(coords, createBaloon(e.target.dataset.address, reviewsOfCurrentAddress));
-            }
-            else {
-                myMap.balloon.close();
-            }
+            reviewsLayout = createReview(reviewsOfCurrentAddress);
+            reviewsList.innerHTML = '';
+            reviewsList.innerHTML += reviewsLayout;
+            popupAddress.innerText = e.target.dataset.address;
+            popupAddress.setAttribute('title', e.target.dataset.address);
+
+            popupLayout.style.display = 'block';
+            popupLayout.style.top = clickY + 'px';
+            popupLayout.style.left = clickX + 'px';
+
+            popupBtn.dataset.coords = e.target.dataset.coords;
+
+            e.target.dataset.coords = coords[0].toPrecision(6) + ',';
 
             reviewsOfCurrentAddress = [];
         }
@@ -210,7 +180,12 @@ function init() {
     myMap.events.add('click', function (e) {
         if (!myMap.balloon.isOpen()) {
             coords = e.get('coords');
+            popupLayout.style.display = 'none';
+            coords = checkCoords(coords);
 
+            popupBtn.dataset.coords = coords;
+
+            myMap.balloon.close();
             getPointAddress(coords)
                 .then(
                     function(response) {
@@ -222,8 +197,16 @@ function init() {
                                 lastReviews.push(item);
                             }
                         });
+                        
+                        reviewsLayout = createReview(lastReviews);
+                        reviewsList.innerHTML = '';
+                        reviewsList.innerHTML += reviewsLayout;
+                        popupAddress.innerText = address;
+                        popupAddress.setAttribute('title', address);
 
-                        myMap.balloon.open(coords, createBaloon(address, lastReviews));
+                        popupLayout.style.display = 'block';
+                        popupLayout.style.top = clickY + 'px';
+                        popupLayout.style.left = clickX + 'px';
 
                         lastReviews = [];
                     }
@@ -234,4 +217,106 @@ function init() {
             myMap.balloon.close();
         }
     });
+
+    popupLayout.addEventListener('click', function(e) {
+        if (e.target.dataset.add) {
+            e.preventDefault();
+
+            var inputName = document.getElementById('inputName').value,
+                inputPlace = document.getElementById('inputPlace').value,
+                inputReview = document.getElementById('inputReview').value;
+
+
+            if ((typeof coords[0] === "string") && (typeof coords[1] === "string")) {
+                var lat = coords[0],
+                    lng = coords[1];
+            } else {
+                var lat = coords[0].toPrecision(6),
+                    lng = coords[1].toPrecision(6);
+            }
+
+            if (e.target.dataset.coords) {
+                coords = e.target.dataset.coords.split(',');
+
+                var lat = coords[0],
+                    lng = coords[1];
+            }
+
+            getPointAddress(coords)
+                .then(
+                    function(response) {
+                        var myPlacemark,
+                            lastReviews = [],
+                            address = response.GeoObject.description + ' ' + response.GeoObject.name;
+
+                        objectBaloon.coords = [lat, lng];
+                        objectBaloon.address = address;
+                        objectBaloon.name = inputName;
+                        objectBaloon.review = inputReview;
+                        objectBaloon.place = inputPlace;
+                        objectBaloon.date = new Date().toLocaleString();
+
+                        myBaloons.push(objectBaloon);
+
+                        myBaloons.forEach(function(item, i, myBaloons) {
+                            if (item.address === address) {
+                                lastReviews.push(item);
+                            }
+                        });
+
+                        myPlacemark = new ymaps.Placemark(
+                            [lat, lng],
+                            getPointData([inputPlace, inputReview, lat, lng, objectBaloon.date], response),
+                            getPointOptions()
+                        );
+
+                        myMap.geoObjects.add(myPlacemark);
+
+                        reviewsLayout = createReview(lastReviews);
+                        reviewsList.innerHTML = reviewsLayout;
+
+                        objectBaloon = {};
+
+                        clusterer.add(myPlacemark);
+
+                        myPlacemark.events.add('click', function (e) {
+                            var baloonCoords = e.get('target').geometry.getCoordinates(),
+                                lastReviews = [];
+
+                            myBaloons.forEach(function(item, i, myBaloons) {
+                                if ((item.coords[0] === baloonCoords[0]) && (item.coords[1] === baloonCoords[1])) {
+                                    lastReviews.push(item);
+                                }
+                            });
+
+                            reviewsLayout = createReview(lastReviews);
+                            reviewsList.innerHTML = '';
+                            reviewsList.innerHTML += reviewsLayout;
+                            popupAddress.innerText = address;
+                            popupAddress.setAttribute('title', address);
+                            popupBtn.dataset.coords = baloonCoords;
+
+                            popupLayout.style.display = 'block';
+                            popupLayout.style.top = clickY + 'px';
+                            popupLayout.style.left = clickX + 'px';
+
+                            lastReviews = [];
+                        });
+                    }
+                )
+                .catch(function() {alert('Не могу определить точный адрес!')});
+        }
+    });
+
+    myMap.events.add('boundschange', function (e) {
+        popupLayout.style.display = 'none';
+    });
+
+    myMap.events.add('actiontick', function (e) {
+        popupLayout.style.display = 'none';
+    });
+
+    closeBtn.addEventListener('click', function (e) {
+        popupLayout.style.display = 'none';
+    })
 }
